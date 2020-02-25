@@ -1,4 +1,28 @@
+globals [
+  price
+]
 
+turtles-own [
+  mine?
+  hashrate
+  energy-cost
+  efficiency
+]
+
+to setup
+  clear-all
+  set-default-shape turtles "person"
+  set random price
+  create-turtles num-particles [
+    set random-xcor random-ycor
+    set random hashrate
+    set random
+  ]
+  reset-ticks
+end
+
+to go
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -26,6 +50,21 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
+
+SLIDER
+16
+14
+188
+47
+miners
+miners
+10
+5000
+1000.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
