@@ -12,11 +12,13 @@ turtles-own [
 to setup
   clear-all
   set-default-shape turtles "person"
-  set random price
-  create-turtles num-particles [
-    set random-xcor random-ycor
-    set random hashrate
-    set random
+  set price random (10000)
+  create-turtles miners [
+    set color white
+    setxy random-xcor random-ycor
+    set hashrate random (100000)
+    set efficiency random (10000)
+    set energy-cost random (10) ;; to be changed
   ]
   reset-ticks
 end
