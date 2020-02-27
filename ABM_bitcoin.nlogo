@@ -1,5 +1,7 @@
 globals [
   price
+  total-hashrate
+  total-reward
 ]
 
 turtles-own [
@@ -7,23 +9,81 @@ turtles-own [
   hashrate
   energy-cost
   efficiency
+  reward
+  cost
 ]
 
 to setup
   clear-all
   set-default-shape turtles "person"
-  set price random (10000)
+  set price 100
+  set total-reward 7200
   create-turtles miners [
     set color white
     setxy random-xcor random-ycor
-    set hashrate random (100000)
-    set efficiency random (10000)
-    set energy-cost random (10) ;; to be changed
+    set hashrate random (max-hashrate) ;; in PH
+    set efficiency random (max-efficiency) + 1 ;; in TH per kwh
+    set mine? one-of [true false]
+    setxy random-xcor random-ycor
+    set reward 0
+    set cost 0
+  ]
+  ask patches [set pcolor one-of [13 14 15 16]]
+  ask turtles [
+    if pcolor = 13 [
+      set energy-cost 0.05
+    ]
+    if pcolor = 14 [
+      set energy-cost 0.075
+    ]
+    if pcolor = 15 [
+      set energy-cost 0.1
+    ]
+    if pcolor = 16 [
+      set energy-cost 0.125
+    ifelse mine? = true
+      [set color white]
+      [set color grey]
+    ]
   ]
   reset-ticks
 end
 
 to go
+  ;; calculate total hashrate
+  set total-hashrate 0
+  ask turtles [
+    if mine? = true
+    [ set total-hashrate total-hashrate + hashrate ]
+  ]
+  if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
+  ;; distribute reward
+  ask turtles [
+    ifelse mine? = true
+    [ set reward total-reward / total-hashrate * hashrate ]
+    [ set reward 0 ]
+  ]
+  ;; calculate costs
+  ask turtles [
+    ifelse mine? = true
+    [ set cost hashrate / efficiency * energy-cost * 1000 ]
+    [ set cost 0 ]
+  ]
+  ;; make decision about mining
+  ask turtles [
+    if reward = 0 [
+      set reward total-reward / total-hashrate * hashrate
+      set cost hashrate / efficiency * energy-cost * 1000
+    ]
+    ifelse reward * price >= cost
+    [ set mine? true ]
+    [ set mine? false ]
+    ifelse mine? = true
+    [  set color white ]
+    [  set color grey ]
+  ]
+  set price price + random 10 - 5
+  tick
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -61,12 +121,112 @@ SLIDER
 miners
 miners
 10
-5000
-1000.0
+1000
+496.0
 1
 1
 NIL
 HORIZONTAL
+
+SLIDER
+17
+55
+189
+88
+max-hashrate
+max-hashrate
+0
+1000
+153.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+22
+104
+95
+137
+setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+104
+105
+167
+138
+Go
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+21
+155
+193
+188
+max-efficiency
+max-efficiency
+1
+50
+26.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+6
+208
+206
+358
+total-hashrate
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot total-hashrate"
+
+PLOT
+657
+18
+857
+168
+price
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot price"
 
 @#$#@#$#@
 ## WHAT IS IT?
