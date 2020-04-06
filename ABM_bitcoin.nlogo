@@ -2,6 +2,8 @@ globals [
   price
   total-hashrate
   total-reward
+  total-revenue
+  total-cost
 ]
 
 turtles-own [
@@ -18,29 +20,30 @@ to setup
   set-default-shape turtles "person"
   set price 100
   set total-reward 7200
-  create-turtles miners [
+  create-turtles miners-init [
     set color white
     setxy random-xcor random-ycor
-    set hashrate random (max-hashrate) ;; in PH
-    set efficiency random (max-efficiency) + 1 ;; in TH per kwh
+    set hashrate random (max-init-hashrate) ;; in TH
+    ;set efficiency random (max-efficiency) + 1 ;; in TH per kwh
     set mine? one-of [true false]
     setxy random-xcor random-ycor
     set reward 0
-    set cost 0
+    set cost 0 ;;
   ]
   ask patches [set pcolor one-of [13 14 15 16]]
   ask turtles [
+    ; energy-cost in usd per TH*day
     if pcolor = 13 [
-      set energy-cost 0.05
+      set energy-cost min-energy-cost + random-float 0.1
     ]
     if pcolor = 14 [
-      set energy-cost 0.075
+      set energy-cost min-energy-cost + 0.1 + random-float 0.1
     ]
     if pcolor = 15 [
-      set energy-cost 0.1
+      set energy-cost min-energy-cost + 0.2 + random-float 0.1
     ]
     if pcolor = 16 [
-      set energy-cost 0.125
+      set energy-cost min-energy-cost + 0.3 + random-float 0.1
     ifelse mine? = true
       [set color white]
       [set color grey]
@@ -49,31 +52,39 @@ to setup
   reset-ticks
 end
 
-to go
-  ;; calculate total hashrate
+to calc-hashrate
   set total-hashrate 0
   ask turtles [
     if mine? = true
     [ set total-hashrate total-hashrate + hashrate ]
   ]
-  if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
-  ;; distribute reward
+end
+
+to distr-reward
   ask turtles [
     ifelse mine? = true
     [ set reward total-reward / total-hashrate * hashrate ]
     [ set reward 0 ]
   ]
-  ;; calculate costs
+  set total-revenue price * total-reward
+end
+
+to calc-cost
+  set total-cost 0
   ask turtles [
-    ifelse mine? = true
-    [ set cost hashrate / efficiency * energy-cost * 1000 ]
+    ifelse mine? = true [
+      set cost hashrate * energy-cost
+      set total-cost total-cost + cost
+    ]
     [ set cost 0 ]
   ]
-  ;; make decision about mining
+end
+
+to decide-mining
   ask turtles [
     if reward = 0 [
-      set reward total-reward / total-hashrate * hashrate
-      set cost hashrate / efficiency * energy-cost * 1000
+        set reward total-reward / total-hashrate * hashrate
+        set cost hashrate * energy-cost
     ]
     ifelse reward * price >= cost
     [ set mine? true ]
@@ -82,6 +93,33 @@ to go
     [  set color white ]
     [  set color grey ]
   ]
+end
+
+to decide-grow
+  ask turtles [
+    if (reward * price >= 2 * cost) [
+      set hashrate hashrate * 1.2
+    ]
+  ]
+end
+
+to decide-upgrade
+  ask turtles [
+    if (reward * price < 2 * cost) and (energy-cost - 0.1 > min-energy-cost) and (random 5 <= 1) [
+      set energy-cost energy-cost - 0.1
+    ]
+  ]
+end
+
+to go
+  calc-hashrate
+  if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
+  distr-reward
+  calc-cost
+  ;; make decision about mining
+  decide-grow
+  decide-upgrade
+  decide-mining
   set price price + random 10 - 5
   tick
 end
@@ -118,8 +156,8 @@ SLIDER
 14
 188
 47
-miners
-miners
+miners-init
+miners-init
 10
 1000
 496.0
@@ -131,13 +169,13 @@ HORIZONTAL
 SLIDER
 17
 55
-189
+209
 88
-max-hashrate
-max-hashrate
+max-init-hashrate
+max-init-hashrate
 0
 1000
-153.0
+198.0
 1
 1
 NIL
@@ -177,21 +215,6 @@ NIL
 NIL
 1
 
-SLIDER
-21
-155
-193
-188
-max-efficiency
-max-efficiency
-1
-50
-26.0
-1
-1
-NIL
-HORIZONTAL
-
 PLOT
 6
 208
@@ -227,6 +250,40 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot price"
+
+SLIDER
+21
+162
+193
+195
+min-energy-cost
+min-energy-cost
+0.05
+0.3
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
+PLOT
+667
+222
+1066
+453
+revenue vs cost
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"total-cost" 1.0 0 -16777216 true "" "plot total-cost"
+"total-revenue" 1.0 0 -7500403 true "" "plot total-revenue"
 
 @#$#@#$#@
 ## WHAT IS IT?
