@@ -1,54 +1,121 @@
+extensions [csv]
+
 globals [
   price
   total-hashrate
   total-reward
   total-revenue
   total-cost
+  energy-areas
+  temp-cost
+  transaction-fees ;; in btc
+  rsme
+  data
+  true-hashrate
+  N
+  M
+  ;; growth parameters
+  max-hashrate
+  energy-step
+
+  eff-coord
+  eff-step
+  ;; coor parameters
+  min-x
+  max-x
 ]
 
 turtles-own [
   mine?
   hashrate
   energy-cost
-  efficiency
-  reward
+  revenue
   cost
+  efficiency
+  profit-1
+  profit-2
+  profit-3
+  profit-4
+  exp-revenue
+  exp-cost
+  days-not-mining
+  hist-tolerance
 ]
+
+to create-miners [number minx maxx]
+  create-turtles number [
+    set size 4
+    set color white
+    setxy (random(maxx - minx) + minx) random-ycor
+    set hashrate random-float max-hashrate ;; in TH
+    ;show hashrate
+    ;set efficiency random (max-efficiency) + 1 ;; in TH per kwh
+    set mine? one-of [true false]
+    set revenue 0
+    set cost 0
+    set efficiency (eff-coord ^ pxcor)
+    set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
+    set days-not-mining 0
+    set hist-tolerance random 4
+  ]
+end
 
 to setup
   clear-all
   set-default-shape turtles "person"
-  set price 100
-  set total-reward 7200
+  set price 0
+  set N 1168
+  set M 10
+  set total-reward 0
+  set energy-areas 10
+  set total-cost 0
+  set temp-cost 0
+  set transaction-fees 0 ;; in btc per day
+  set max-hashrate max-init-hashrate
+  set energy-step (max-energy-cost - min-energy-cost) / energy-areas
+  set eff-step 200 / M
+
+  set min-x 0
+  set max-x eff-step
+
+  set eff-coord (max-energy-efficiency / min-energy-efficiency) ^ (1 / 200)
+
   create-turtles miners-init [
+    set size 4
     set color white
-    setxy random-xcor random-ycor
-    set hashrate random (max-init-hashrate) ;; in TH
+    setxy (random(max-x - min-x) + min-x) random-ycor
+    set hashrate random-float (max-init-hashrate) ;; in TH
     ;set efficiency random (max-efficiency) + 1 ;; in TH per kwh
     set mine? one-of [true false]
-    setxy random-xcor random-ycor
-    set reward 0
+    set revenue 0
+    set efficiency 0 ;;TODO
     set cost 0 ;;
+    set energy-cost 0
+    set days-not-mining 0
+    set hist-tolerance random 4
   ]
-  ask patches [set pcolor one-of [13 14 15 16]]
+  let i 0
+  while [i < energy-areas] [
+    ask patches [
+      if (pycor >= (200 / energy-areas * i)) and (pycor < (200 / energy-areas * (i + 1) + 1)) [
+        set pcolor 13 + i
+      ]
+    ]
+    set i i + 1
+  ]
   ask turtles [
-    ; energy-cost in usd per TH*day
-    if pcolor = 13 [
-      set energy-cost min-energy-cost + random-float 0.1
-    ]
-    if pcolor = 14 [
-      set energy-cost min-energy-cost + 0.1 + random-float 0.1
-    ]
-    if pcolor = 15 [
-      set energy-cost min-energy-cost + 0.2 + random-float 0.1
-    ]
-    if pcolor = 16 [
-      set energy-cost min-energy-cost + 0.3 + random-float 0.1
+    set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
+    set efficiency eff-coord ^ pxcor
+  ]
+  ask turtles [
     ifelse mine? = true
       [set color white]
       [set color grey]
-    ]
   ]
+  file-close-all ; Close any files open from last run
+  file-open "data.csv"
+  set data csv:from-row file-read-line
+  ; other setup goes here
   reset-ticks
 end
 
@@ -63,88 +130,129 @@ end
 to distr-reward
   ask turtles [
     ifelse mine? = true
-    [ set reward total-reward / total-hashrate * hashrate ]
-    [ set reward 0 ]
+    [ set revenue (total-reward + transaction-fees) / total-hashrate * hashrate * price ]
+    [ set revenue 0 ]
   ]
-  set total-revenue price * total-reward
+  set total-revenue (total-reward + transaction-fees) * price
+end
+
+to update-time-vars
+  if (ticks mod 100) = 99 and (ticks < 900) [
+    set min-x min-x + eff-step
+    set max-x max-x + eff-step
+  ]
+  set max-hashrate max-hashrate * (1 + hashrate-growth)
+  ask turtles [
+    if revenue = 0 [
+        set exp-revenue (total-reward + transaction-fees) / total-hashrate * hashrate * price
+        set exp-cost hashrate * energy-cost
+    ]
+    set profit-4 profit-3
+    set profit-3 profit-2
+    set profit-2 profit-1
+    ifelse revenue != 0
+      [ set profit-1 revenue - cost ]
+      [ set profit-1 exp-revenue - exp-cost ]
+  ]
 end
 
 to calc-cost
-  set total-cost 0
+  set temp-cost 0
   ask turtles [
     ifelse mine? = true [
-      set cost hashrate * energy-cost
-      set total-cost total-cost + cost
+      set cost hashrate * energy-cost / efficiency * 86400
+      set temp-cost temp-cost + cost
     ]
     [ set cost 0 ]
   ]
+  set total-cost temp-cost
 end
 
 to decide-mining
   ask turtles [
-    if reward = 0 [
-        set reward total-reward / total-hashrate * hashrate
-        set cost hashrate * energy-cost
+    let flag false
+    if hist-tolerance = 0 [set flag (profit-1 <= 0)]
+    if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
+    if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
+    if hist-tolerance = 3 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0) and (profit-4 <= 0)]
+    set flag flag or ((revenue < 1) and (exp-revenue < 1))
+    ifelse flag
+    [
+      set mine? false
+      set days-not-mining days-not-mining + 1
     ]
-    ifelse reward * price >= cost
-    [ set mine? true ]
-    [ set mine? false ]
+    [
+      set mine? true
+      set days-not-mining 0
+    ]
+    ;set mine? true
     ifelse mine? = true
     [  set color white ]
     [  set color grey ]
+    if days-not-mining > 20 [die]
   ]
 end
 
-to decide-grow
-  ask turtles [
-    if (reward * price >= 2 * cost) [
-      set hashrate hashrate * 1.2
-    ]
-  ]
-end
 
-to decide-upgrade
-  ask turtles [
-    if (reward * price < 2 * cost) and (energy-cost - 0.1 > min-energy-cost) and (random 5 <= 1) [
-      set energy-cost energy-cost - 0.1
-    ]
-  ]
+;to decide-grow
+;  ask turtles [
+;    if (reward * price >= 2 * cost) [
+;      set hashrate hashrate + 50
+;    ]
+;  ]
+;end
+;
+;to decide-upgrade
+;  ask turtles [
+;    if (reward * price < 2 * cost) and (energy-cost - 0.1 > min-energy-cost) and (random 5 <= 1) [
+;      set energy-cost energy-cost - 0.1
+;    ]
+;  ]
+;end
+
+to-report tot-cost
+  report total-cost
 end
 
 to go
+  if file-at-end? [ stop ]
+  set data csv:from-row file-read-line
+  set price (item 3 data)
+  set transaction-fees (item 4 data)
+  set true-hashrate (item 2 data)
+  set total-reward (item 5 data)
   calc-hashrate
   if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
   distr-reward
   calc-cost
+  update-time-vars
+  create-miners miner-increment-rate min-x max-x
   ;; make decision about mining
-  decide-grow
-  decide-upgrade
   decide-mining
-  set price price + random 10 - 5
   tick
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-647
-448
+759
+560
 -1
 -1
-13.0
+2.692
 1
 10
 1
 1
 1
 0
+0
+0
 1
-1
-1
--16
-16
--16
-16
+0
+200
+0
+200
 0
 0
 1
@@ -154,38 +262,38 @@ ticks
 SLIDER
 16
 14
-188
+200
 47
 miners-init
 miners-init
 10
-1000
-496.0
+200
+100.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-17
+16
 55
-209
+201
 88
 max-init-hashrate
 max-init-hashrate
-0
-1000
-198.0
-1
+0.00001
+0.0005
+1.0E-4
+0.00001
 1
 NIL
 HORIZONTAL
 
 BUTTON
-22
-104
-95
-137
+9
+525
+82
+558
 setup
 setup
 NIL
@@ -199,10 +307,10 @@ NIL
 1
 
 BUTTON
-104
-105
-167
-138
+107
+525
+170
+558
 Go
 go
 T
@@ -216,28 +324,10 @@ NIL
 1
 
 PLOT
-6
-208
-206
-358
-total-hashrate
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot total-hashrate"
-
-PLOT
-657
-18
-857
-168
+775
+11
+975
+161
 price
 NIL
 NIL
@@ -252,26 +342,26 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot price"
 
 SLIDER
-21
-162
-193
-195
+13
+262
+196
+295
 min-energy-cost
 min-energy-cost
 0.05
-0.3
-0.1
+0.15
+0.05
 0.01
 1
 NIL
 HORIZONTAL
 
 PLOT
-667
-222
-1066
-453
-revenue vs cost
+773
+166
+1167
+390
+hashrate
 NIL
 NIL
 0.0
@@ -282,8 +372,120 @@ true
 true
 "" ""
 PENS
-"total-cost" 1.0 0 -16777216 true "" "plot total-cost"
-"total-revenue" 1.0 0 -7500403 true "" "plot total-revenue"
+"model-hashrate" 1.0 0 -16777216 true "" "plot total-hashrate"
+"true-hashrate" 1.0 0 -7500403 true "" "plot true-hashrate"
+
+PLOT
+993
+10
+1193
+160
+transaction-fees
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot transaction-fees"
+
+SLIDER
+16
+141
+206
+174
+hashrate-growth
+hashrate-growth
+0.001
+0.1
+0.029
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+18
+181
+205
+214
+miner-increment-rate
+miner-increment-rate
+1
+10
+3.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+6
+304
+204
+337
+max-energy-cost
+max-energy-cost
+0.2
+0.5
+0.5
+0.05
+1
+NIL
+HORIZONTAL
+
+PLOT
+773
+410
+1167
+557
+revenue vs costs
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"cost" 1.0 0 -7500403 true "" "plot total-cost"
+"revenue" 1.0 0 -16777216 true "" "plot total-revenue"
+
+SLIDER
+3
+394
+207
+427
+min-energy-efficiency
+min-energy-efficiency
+0.00003
+0.0001
+3.0E-5
+0.00001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+2
+437
+207
+470
+max-energy-efficiency
+max-energy-efficiency
+1
+100
+100.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
