@@ -16,6 +16,7 @@ globals [
   M
   ;; growth parameters
   max-hashrate
+  max-hashrate-prev
   energy-step
 
   eff-coord
@@ -53,7 +54,7 @@ to create-miners [number minx maxx]
     set mine? one-of [true false]
     set revenue 0
     set cost 0
-    set efficiency (eff-coord ^ pxcor)
+    set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
     set days-not-mining 0
     set hist-tolerance random 4
@@ -105,7 +106,7 @@ to setup
   ]
   ask turtles [
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
-    set efficiency eff-coord ^ pxcor
+    set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))
   ]
   ask turtles [
     ifelse mine? = true
@@ -141,18 +142,20 @@ to update-time-vars
     set min-x min-x + eff-step
     set max-x max-x + eff-step
   ]
-  set max-hashrate max-hashrate * (1 + hashrate-growth)
+  set max-hashrate max (list
+    (total-hashrate * (total-revenue - total-cost ) / total-cost / miner-increment-rate * hashrate-growth-rate) max-hashrate-prev)
+  set max-hashrate-prev max-hashrate
   ask turtles [
     if revenue = 0 [
         set exp-revenue (total-reward + transaction-fees) / total-hashrate * hashrate * price
-        set exp-cost hashrate * energy-cost
+        set exp-cost hashrate * energy-cost  / efficiency * 24 * 3600 / 1000
     ]
     set profit-4 profit-3
     set profit-3 profit-2
     set profit-2 profit-1
     ifelse revenue != 0
-      [ set profit-1 revenue - cost ]
-      [ set profit-1 exp-revenue - exp-cost ]
+      [ set profit-1 (revenue - cost) / cost ]
+      [ set profit-1 (exp-revenue - exp-cost) / exp-cost ]
   ]
 end
 
@@ -160,7 +163,8 @@ to calc-cost
   set temp-cost 0
   ask turtles [
     ifelse mine? = true [
-      set cost hashrate * energy-cost / efficiency * 86400
+      ;;efficiency in TH per Wh
+      set cost hashrate * energy-cost / efficiency * 24 * 3600 / 1000
       set temp-cost temp-cost + cost
     ]
     [ set cost 0 ]
@@ -189,7 +193,8 @@ to decide-mining
     ifelse mine? = true
     [  set color white ]
     [  set color grey ]
-    if days-not-mining > 20 [die]
+    if days-not-mining > 5 [die]
+    if profit-1 <= (- 0.5) [die]
   ]
 end
 
@@ -215,6 +220,9 @@ to-report tot-cost
 end
 
 to go
+  ask turtles [
+    if hashrate = 0 [die]
+  ]
   if file-at-end? [ stop ]
   set data csv:from-row file-read-line
   set price (item 3 data)
@@ -268,23 +276,23 @@ miners-init
 miners-init
 10
 200
-100.0
+35.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-16
-55
-201
-88
+13
+60
+199
+93
 max-init-hashrate
 max-init-hashrate
-0.00001
-0.0005
-1.0E-4
-0.00001
+0.0000001
+0.000005
+2.9E-6
+0.0000001
 1
 NIL
 HORIZONTAL
@@ -350,7 +358,7 @@ min-energy-cost
 min-energy-cost
 0.05
 0.15
-0.05
+0.06
 0.01
 1
 NIL
@@ -394,16 +402,16 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot transaction-fees"
 
 SLIDER
-16
-141
-206
-174
-hashrate-growth
-hashrate-growth
-0.001
-0.1
-0.029
-0.001
+13
+138
+205
+171
+hashrate-growth-rate
+hashrate-growth-rate
+0.01
+0.5
+0.18
+0.01
 1
 NIL
 HORIZONTAL
@@ -432,7 +440,7 @@ max-energy-cost
 max-energy-cost
 0.2
 0.5
-0.5
+0.4
 0.05
 1
 NIL
@@ -466,7 +474,7 @@ min-energy-efficiency
 min-energy-efficiency
 0.00003
 0.0001
-3.0E-5
+4.0E-5
 0.00001
 1
 NIL
