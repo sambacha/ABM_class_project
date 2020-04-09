@@ -63,6 +63,7 @@ end
 
 to setup
   clear-all
+  set rsme 0
   set-default-shape turtles "person"
   set price 0
   set N 1168
@@ -219,16 +220,23 @@ to-report tot-cost
   report total-cost
 end
 
+to update-rsme
+  set rsme sqrt((rsme ^ 2) + (total-hashrate - true-hashrate) ^ 2)
+end
+
 to go
   ask turtles [
     if hashrate = 0 [die]
   ]
-  if file-at-end? [ stop ]
-  set data csv:from-row file-read-line
-  set price (item 3 data)
-  set transaction-fees (item 4 data)
-  set true-hashrate (item 2 data)
-  set total-reward (item 5 data)
+  ifelse not file-at-end? [
+    set data csv:from-row file-read-line
+    set price (item 3 data)
+    set transaction-fees (item 4 data)
+    set true-hashrate (item 2 data)
+    set total-reward (item 5 data)
+  ] [
+    stop
+  ]
   calc-hashrate
   if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
   distr-reward
@@ -237,6 +245,7 @@ to go
   create-miners miner-increment-rate min-x max-x
   ;; make decision about mining
   decide-mining
+  update-rsme
   tick
 end
 @#$#@#$#@
