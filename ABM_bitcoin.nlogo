@@ -194,8 +194,8 @@ to decide-mining
     ifelse mine? = true
     [  set color white ]
     [  set color grey ]
-    if days-not-mining > 5 [die]
-    if profit-1 <= (- 0.5) [die]
+    if days-not-mining > 10 [die]
+    if profit-1 <= (- loss-tolerance) [die]
   ]
 end
 
@@ -500,6 +500,21 @@ max-energy-efficiency
 100
 100.0
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+13
+345
+194
+378
+loss-tolerance
+loss-tolerance
+0.3
+0.7
+0.5
+0.05
 1
 NIL
 HORIZONTAL
