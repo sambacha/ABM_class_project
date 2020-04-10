@@ -9,7 +9,7 @@ globals [
   energy-areas
   temp-cost
   transaction-fees ;; in btc
-  rsme
+  error-term
   data
   true-hashrate
   N
@@ -63,7 +63,7 @@ end
 
 to setup
   clear-all
-  set rsme 0
+  set error-term 0
   set-default-shape turtles "person"
   set price 0
   set N 1168
@@ -220,8 +220,8 @@ to-report tot-cost
   report total-cost
 end
 
-to update-rsme
-  set rsme sqrt((rsme ^ 2) + (total-hashrate - true-hashrate) ^ 2)
+to update-error-term
+  set error-term error-term + abs(ln total-hashrate - ln true-hashrate)
 end
 
 to go
@@ -245,7 +245,7 @@ to go
   create-miners miner-increment-rate min-x max-x
   ;; make decision about mining
   decide-mining
-  update-rsme
+  update-error-term
   tick
 end
 @#$#@#$#@
@@ -419,7 +419,7 @@ hashrate-growth-rate
 hashrate-growth-rate
 0.01
 0.5
-0.18
+0.3
 0.01
 1
 NIL
@@ -483,7 +483,7 @@ min-energy-efficiency
 min-energy-efficiency
 0.00003
 0.0001
-4.0E-5
+5.0E-5
 0.00001
 1
 NIL
@@ -498,7 +498,7 @@ max-energy-efficiency
 max-energy-efficiency
 1
 100
-100.0
+64.0
 1
 1
 NIL
@@ -513,7 +513,7 @@ loss-tolerance
 loss-tolerance
 0.3
 0.7
-0.5
+0.4
 0.05
 1
 NIL
