@@ -519,6 +519,17 @@ loss-tolerance
 NIL
 HORIZONTAL
 
+MONITOR
+57
+475
+139
+520
+error-term
+error-term
+5
+1
+11
+
 @#$#@#$#@
 ## WHAT IS IT?
 
