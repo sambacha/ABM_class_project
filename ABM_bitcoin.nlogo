@@ -29,6 +29,9 @@ globals [
   max-x
   max-utility
   min-utility
+  max-price
+  max-total-hashrate
+  treshold
 ]
 
 turtles-own [
@@ -47,7 +50,7 @@ turtles-own [
   exp-cost
   days-not-mining
   hist-tolerance
-  treshold
+  ;treshold
 ]
 
 to create-miners [number minx maxx]
@@ -65,12 +68,14 @@ to create-miners [number minx maxx]
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
     set days-not-mining 0
     set hist-tolerance random 4
-    set treshold random-float 1
+    ;set treshold random-float 0.9
   ]
 end
 
 to setup
   clear-all
+  set max-price 0
+  set max-hashrate 0
   set error-term 0
   set-default-shape turtles "person"
   set price 0
@@ -87,6 +92,7 @@ to setup
 
   set min-x 0
   set max-x eff-step
+  set treshold 0.6
 
   set eff-coord (max-energy-efficiency / min-energy-efficiency) ^ (1 / 200)
 
@@ -103,7 +109,7 @@ to setup
     set energy-cost 0
     set days-not-mining 0
     set hist-tolerance random 4
-    set treshold random-float 1
+    ;set treshold random-float 0.9
   ]
   let i 0
   while [i < energy-areas] [
@@ -137,6 +143,7 @@ to calc-hashrate
     if mine? = true
     [ set total-hashrate total-hashrate + hashrate ]
   ]
+  if max-total-hashrate < total-hashrate [set max-total-hashrate total-hashrate]
 end
 
 to distr-reward
@@ -192,14 +199,16 @@ to decide-mining
     let utility 0
     set utility
     ; @EMD @EvolveNextLine @Factors-File="factors.nls" @return-type=float
-    0
-    if hist-tolerance = 0 [set flag (profit-1 <= 0)]
-    if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
-    if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
-    if hist-tolerance = 3 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0) and (profit-4 <= 0)]
-    set flag flag or ((revenue < 1) and (exp-revenue < 1))
-    set utility (utility - min-utility) / (max-utility - min-utility + 0.0000000001)
-    ;set flag (utility > treshold)
+    r-profit-5
+    ;if hist-tolerance = 0 [set flag (profit-1 <= 0)]
+    ;if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
+    ;if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
+    ;if hist-tolerance = 3 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0) and (profit-4 <= 0)]
+    ;set flag flag or ((revenue < 1) and (exp-revenue < 1))
+    ifelse utility <= 0
+    [set utility 0]
+    [set utility (utility - min-utility) / (max-utility - min-utility + 0.0000000001)]
+    set flag (utility > treshold)
     ifelse flag
     [
       set mine? false
@@ -214,7 +223,7 @@ to decide-mining
     [  set color white ]
     [  set color grey ]
     if days-not-mining > 10 [die]
-    if profit-1 <= (- loss-tolerance) [die]
+    ;if profit-1 <= (- loss-tolerance) [die]
   ]
 end
 
@@ -250,6 +259,7 @@ to go
   ifelse not file-at-end? [
     set data csv:from-row file-read-line
     set price (item 3 data)
+    if max-price < price [set max-price price]
     set transaction-fees (item 4 data)
     set true-hashrate (item 2 data)
     set total-reward (item 5 data)
@@ -257,7 +267,11 @@ to go
     stop
   ]
   calc-hashrate
-  if total-hashrate = 0 [ user-message "Bitcoin died" stop ]
+  if total-hashrate = 0 [
+    user-message "Bitcoin died"
+    set error-term 10000
+    stop
+  ]
   distr-reward
   calc-cost
   update-time-vars

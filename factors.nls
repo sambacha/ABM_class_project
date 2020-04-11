@@ -4,42 +4,127 @@ to update-utility-ranges [u-min u-max]
 end
   
 
-;@EMD @Operator @return-type=float
+;@EMD @Factor @return-type=float
 to-report r-profit-1
   update-utility-ranges 0 1
-  ifelse (profit-1 >= 0)
-  [report 0]
+  ifelse (profit-1 >= 1)
+  [report -1]
   [report (- profit-1)]
 end
 
-;@EMD @Operator @return-type=float
+;@EMD @Factor @return-type=float
 to-report r-profit-2
   update-utility-ranges 0 1
-  ifelse (profit-2 >= 0)
-  [report 0]
+  ifelse (profit-2 >= 1)
+  [report -1]
   [report (- profit-2)]
 end
 
-;@EMD @Operator @return-type=float
+;@EMD @Factor @return-type=float
 to-report r-profit-3
   update-utility-ranges 0 1
-  ifelse (profit-3 >= 0)
-  [report 0]
+  ifelse (profit-3 >= 1)
+  [report -1]
   [report (- profit-3)]
 end
 
-;@EMD @Operator @return-type=float
+;@EMD @Factor @return-type=float
 to-report r-profit-4
   update-utility-ranges 0 1
-  ifelse (profit-4 >= 0)
-  [report 0]
+  ifelse (profit-4 >= 1)
+  [report -1]
   [report (- profit-4)]
 end
 
-;@EMD @Operator @return-type=float
+;@EMD @Factor @return-type=float
 to-report r-profit-5
   update-utility-ranges 0 1
-  ifelse (profit-5 >= 0)
-  [report 0]
-  [report (- profit-4)]
+  ifelse (profit-5 >= 1)
+  [report -1]
+  [report (- profit-5)]
 end
+
+;@EMD @Factor @return-type=float
+to-report hashrate-fraction
+  ifelse hashrate / total-hashrate >= 0.5
+  [report 1]
+  [report 0]
+end
+
+;@EMD @Factor @return-type=float
+to-report r-profit-1-abs
+  update-utility-ranges 0 1
+  let profit-1-abs (profit-1 * hashrate * energy-cost / efficiency * 24 * 3600 / 1000)
+  ifelse (profit-1-abs <= 0 or profit-1-abs >= 10)
+  [report 0]
+  [report (1 - profit-1-abs / 10)]
+end
+
+;@EMD @Factor @return-type=float
+to-report r-profit-2-abs
+  update-utility-ranges 0 1
+  let profit-2-abs (profit-2 * hashrate * energy-cost / efficiency * 24 * 3600 / 1000)
+  ifelse (profit-2-abs <= 0 or profit-2-abs >= 10)
+  [report 0]
+  [report (1 - profit-2-abs / 10)]
+end
+
+;@EMD @Factor @return-type=float
+to-report r-profit-3-abs
+  update-utility-ranges 0 1
+  let profit-3-abs (profit-3 * hashrate * energy-cost / efficiency * 24 * 3600 / 1000)
+  ifelse (profit-3-abs <= 0 or profit-3-abs >= 10)
+  [report 0]
+  [report (1 - profit-3-abs / 10)]
+end
+
+;@EMD @Factor @return-type=float
+to-report r-profit-4-abs
+  update-utility-ranges 0 1
+  let profit-4-abs (profit-4 * hashrate * energy-cost / efficiency * 24 * 3600 / 1000)
+  ifelse (profit-4-abs <= 0 or profit-4-abs >= 10)
+  [report 0]
+  [report (1 - profit-4-abs / 10)]
+end
+
+;@EMD @Factor @return-type=float
+to-report r-profit-5-abs
+  update-utility-ranges 0 1
+  let profit-5-abs (profit-2 * hashrate * energy-cost / efficiency * 24 * 3600 / 1000)
+  ifelse (profit-5-abs <= 0 or profit-5-abs >= 10)
+  [report 0]
+  [report (1 - profit-5-abs / 10)]
+end
+
+;@EMD @Factor @return-type=float
+to-report exp-profit
+  update-utility-ranges 0 1
+  let expected-hashrate (total-hashrate + (total-hashrate - total-hashrate-prev))
+  let expected-revenue (total-reward + transaction-fees) / expected-hashrate * hashrate * price
+  let expected-cost (hashrate * energy-cost  / efficiency * 24 * 3600 / 1000)
+  let expected-profit (expected-revenue - expected-cost) / expected-cost
+  ifelse (expected-profit < 0)
+  [report (- expected-profit)]
+  [report 0]
+end
+
+;@EMD @Factor @return-type=float
+to-report adoption
+  update-utility-ranges 0 1
+  report (1 - price / max-price)
+end
+
+;@EMD @Factor @return-type=float
+to-report network-health
+  ;update-utility-ranges 0 1
+  report (- 1 + total-hashrate / max-total-hashrate)
+end
+
+; @EMD @Operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
+to-report combine [a b]
+  report a + b
+end
+
+
+
+
