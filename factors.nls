@@ -1,0 +1,45 @@
+to update-utility-ranges [u-min u-max]
+  set min-utility min-utility + u-min 
+  set max-utility max-utility + u-max 
+end
+  
+
+;@EMD @Operator @return-type=float
+to-report r-profit-1
+  update-utility-ranges 0 1
+  ifelse (profit-1 >= 0)
+  [report 0]
+  [report (- profit-1)]
+end
+
+;@EMD @Operator @return-type=float
+to-report r-profit-2
+  update-utility-ranges 0 1
+  ifelse (profit-2 >= 0)
+  [report 0]
+  [report (- profit-2)]
+end
+
+;@EMD @Operator @return-type=float
+to-report r-profit-3
+  update-utility-ranges 0 1
+  ifelse (profit-3 >= 0)
+  [report 0]
+  [report (- profit-3)]
+end
+
+;@EMD @Operator @return-type=float
+to-report r-profit-4
+  update-utility-ranges 0 1
+  ifelse (profit-4 >= 0)
+  [report 0]
+  [report (- profit-4)]
+end
+
+;@EMD @Operator @return-type=float
+to-report r-profit-5
+  update-utility-ranges 0 1
+  ifelse (profit-5 >= 0)
+  [report 0]
+  [report (- profit-4)]
+end

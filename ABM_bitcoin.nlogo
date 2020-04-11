@@ -1,5 +1,7 @@
 extensions [csv]
 
+__includes [ "factors.nls" ]
+
 globals [
   price
   total-hashrate
@@ -14,6 +16,7 @@ globals [
   true-hashrate
   N
   M
+  total-hashrate-prev
   ;; growth parameters
   max-hashrate
   max-hashrate-prev
@@ -24,6 +27,8 @@ globals [
   ;; coor parameters
   min-x
   max-x
+  max-utility
+  min-utility
 ]
 
 turtles-own [
@@ -37,10 +42,12 @@ turtles-own [
   profit-2
   profit-3
   profit-4
+  profit-5
   exp-revenue
   exp-cost
   days-not-mining
   hist-tolerance
+  treshold
 ]
 
 to create-miners [number minx maxx]
@@ -58,6 +65,7 @@ to create-miners [number minx maxx]
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
     set days-not-mining 0
     set hist-tolerance random 4
+    set treshold random-float 1
   ]
 end
 
@@ -95,6 +103,7 @@ to setup
     set energy-cost 0
     set days-not-mining 0
     set hist-tolerance random 4
+    set treshold random-float 1
   ]
   let i 0
   while [i < energy-areas] [
@@ -122,6 +131,7 @@ to setup
 end
 
 to calc-hashrate
+  set total-hashrate-prev total-hashrate
   set total-hashrate 0
   ask turtles [
     if mine? = true
@@ -151,6 +161,7 @@ to update-time-vars
         set exp-revenue (total-reward + transaction-fees) / total-hashrate * hashrate * price
         set exp-cost hashrate * energy-cost  / efficiency * 24 * 3600 / 1000
     ]
+    set profit-5 profit-4
     set profit-4 profit-3
     set profit-3 profit-2
     set profit-2 profit-1
@@ -175,12 +186,20 @@ end
 
 to decide-mining
   ask turtles [
+    set max-utility 0
+    set min-utility 0
     let flag false
+    let utility 0
+    set utility
+    ; @EMD @EvolveNextLine @Factors-File="factors.nls" @return-type=float
+    0
     if hist-tolerance = 0 [set flag (profit-1 <= 0)]
     if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
     if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
     if hist-tolerance = 3 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0) and (profit-4 <= 0)]
     set flag flag or ((revenue < 1) and (exp-revenue < 1))
+    set utility (utility - min-utility) / (max-utility - min-utility + 0.0000000001)
+    ;set flag (utility > treshold)
     ifelse flag
     [
       set mine? false
