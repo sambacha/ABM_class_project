@@ -199,7 +199,7 @@ to decide-mining
     let utility 0
     set utility
     ; @EMD @EvolveNextLine @Factors-File="factors.nls" @return-type=float
-    r-profit-5
+    r-profit-1 + r-profit-2 + r-profit-3 + r-profit-4 + r-profit-5 + r-profit-1-abs
     ;if hist-tolerance = 0 [set flag (profit-1 <= 0)]
     ;if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
     ;if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
