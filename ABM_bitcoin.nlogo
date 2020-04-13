@@ -32,6 +32,9 @@ globals [
   max-price
   max-total-hashrate
   treshold
+  equipment-growth-stop
+
+  day
 ]
 
 turtles-own [
@@ -64,7 +67,9 @@ to create-miners [number minx maxx]
     set mine? one-of [true false]
     set revenue 0
     set cost 0
-    set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))
+    ifelse pxcor <= equipment-growth-stop
+    [set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))]
+    [set efficiency (min-energy-efficiency * (eff-coord ^ equipment-growth-stop))]
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
     set days-not-mining 0
     set hist-tolerance random 4
@@ -74,6 +79,8 @@ end
 
 to setup
   clear-all
+  set equipment-growth-stop 200
+  set day 0
   set max-price 0
   set max-hashrate 0
   set error-term 0
@@ -92,9 +99,9 @@ to setup
 
   set min-x 0
   set max-x eff-step
-  set treshold 0.6
+  set treshold 0.3
 
-  set eff-coord (max-energy-efficiency / min-energy-efficiency) ^ (1 / 200)
+  set eff-coord (max-energy-efficiency / min-energy-efficiency) ^ (1 / equipment-growth-stop)
 
   create-turtles miners-init [
     set size 4
@@ -122,7 +129,9 @@ to setup
   ]
   ask turtles [
     set energy-cost (min-energy-cost + energy-step * (pcolor - 13) + random-float energy-step)
-    set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))
+    ifelse pxcor <= equipment-growth-stop
+    [set efficiency (min-energy-efficiency * (eff-coord ^ pxcor))]
+    [set efficiency (min-energy-efficiency * (eff-coord ^ equipment-growth-stop))]
   ]
   ask turtles [
     ifelse mine? = true
@@ -222,7 +231,7 @@ to decide-mining
     ifelse mine? = true
     [  set color white ]
     [  set color grey ]
-    if days-not-mining > 10 [die]
+    if days-not-mining >= 10 [die]
     ;if profit-1 <= (- loss-tolerance) [die]
   ]
 end
@@ -265,6 +274,12 @@ to go
     set total-reward (item 5 data)
   ] [
     stop
+    if (day mod 500) = 0 [set total-reward total-reward / 2 ]
+    if scenario = "good" [ set price price + random-float 50 - 20 ]
+    if scenario = "bad" [ set price price + random-float 50 - 30 ]
+    if scenario = "neutral" [set price price + random-float 50 - 25 ]
+    set transaction-fees transaction-fees + random-float 10 - 4.8
+    set day day + 1
   ]
   calc-hashrate
   if total-hashrate = 0 [
@@ -445,9 +460,9 @@ PENS
 
 SLIDER
 13
-138
+101
 205
-171
+134
 hashrate-growth-rate
 hashrate-growth-rate
 0.01
@@ -460,9 +475,9 @@ HORIZONTAL
 
 SLIDER
 18
-181
+145
 205
-214
+178
 miner-increment-rate
 miner-increment-rate
 1
@@ -562,6 +577,16 @@ error-term
 5
 1
 11
+
+CHOOSER
+24
+197
+162
+242
+scenario
+scenario
+"good" "bad" "neutral"
+2
 
 @#$#@#$#@
 ## WHAT IS IT?
