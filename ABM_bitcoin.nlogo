@@ -32,8 +32,6 @@ globals [
   max-price
   max-total-hashrate
   treshold
-  equipment-growth-stop
-
   day
 ]
 
@@ -79,7 +77,6 @@ end
 
 to setup
   clear-all
-  set equipment-growth-stop 200
   set day 0
   set max-price 0
   set max-hashrate 0
@@ -208,7 +205,7 @@ to decide-mining
     let utility 0
     set utility
     ; @EMD @EvolveNextLine @Factors-File="factors.nls" @return-type=float
-    r-profit-1 + r-profit-2 + r-profit-3 + r-profit-4 + r-profit-5 + r-profit-1-abs
+    r-profit-1 + r-profit-2 + r-profit-3 + r-profit-4 + r-profit-1-abs
     ;if hist-tolerance = 0 [set flag (profit-1 <= 0)]
     ;if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
     ;if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
@@ -333,7 +330,7 @@ miners-init
 miners-init
 10
 200
-35.0
+146.0
 1
 1
 NIL
@@ -348,7 +345,7 @@ max-init-hashrate
 max-init-hashrate
 0.0000001
 0.000005
-2.9E-6
+2.3E-6
 0.0000001
 1
 NIL
@@ -407,10 +404,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot price"
 
 SLIDER
-13
-262
-196
-295
+14
+267
+197
+300
 min-energy-cost
 min-energy-cost
 0.05
@@ -467,7 +464,7 @@ hashrate-growth-rate
 hashrate-growth-rate
 0.01
 0.5
-0.3
+0.12
 0.01
 1
 NIL
@@ -482,7 +479,7 @@ miner-increment-rate
 miner-increment-rate
 1
 10
-3.0
+7.0
 1
 1
 NIL
@@ -497,7 +494,7 @@ max-energy-cost
 max-energy-cost
 0.2
 0.5
-0.4
+0.45
 0.05
 1
 NIL
@@ -531,7 +528,7 @@ min-energy-efficiency
 min-energy-efficiency
 0.00003
 0.0001
-5.0E-5
+1.0E-4
 0.00001
 1
 NIL
@@ -546,7 +543,7 @@ max-energy-efficiency
 max-energy-efficiency
 1
 100
-64.0
+44.0
 1
 1
 NIL
@@ -561,7 +558,7 @@ loss-tolerance
 loss-tolerance
 0.3
 0.7
-0.4
+0.35
 0.05
 1
 NIL
@@ -580,13 +577,28 @@ error-term
 
 CHOOSER
 24
-197
+183
 162
-242
+228
 scenario
 scenario
 "good" "bad" "neutral"
 2
+
+SLIDER
+16
+229
+202
+262
+equipment-growth-stop
+equipment-growth-stop
+140
+200
+140.0
+5
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
