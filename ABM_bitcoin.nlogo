@@ -205,12 +205,9 @@ to decide-mining
     let utility 0
     set utility
     ; @EMD @EvolveNextLine @Factors-File="factors.nls" @return-type=float
-    r-profit-1 + r-profit-2 + r-profit-3 + r-profit-4 + r-profit-1-abs
-    ;if hist-tolerance = 0 [set flag (profit-1 <= 0)]
-    ;if hist-tolerance = 1 [set flag (profit-1 <= 0) and (profit-2 <= 0)]
-    ;if hist-tolerance = 2 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0)]
-    ;if hist-tolerance = 3 [set flag (profit-1 <= 0) and (profit-2 <= 0) and (profit-3 <= 0) and (profit-4 <= 0)]
-    ;set flag flag or ((revenue < 1) and (exp-revenue < 1))
+    ;r-profit-1 + r-profit-4 + r-profit-5
+    adoption + exp-profit + r-profit-1 + r-profit-1 + r-profit-1 + r-profit-2 + r-profit-3 +
+    r-profit-4 + r-profit-4 + r-profit-4 + r-profit-5 + r-profit-5 + r-profit-5
     ifelse utility <= 0
     [set utility 0]
     [set utility (utility - min-utility) / (max-utility - min-utility + 0.0000000001)]
@@ -270,7 +267,7 @@ to go
     set true-hashrate (item 2 data)
     set total-reward (item 5 data)
   ] [
-    stop
+    ;stop
     if (day mod 500) = 0 [set total-reward total-reward / 2 ]
     if scenario = "good" [ set price price + random-float 50 - 20 ]
     if scenario = "bad" [ set price price + random-float 50 - 30 ]
